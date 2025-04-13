@@ -1,4 +1,37 @@
 -- RoBeat Autoplay V3 with Rounded Corners
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Remove old GUI if it exists
+local oldGui = game.CoreGui:FindFirstChild("FakeChatSpam")
+if oldGui then
+    oldGui:Destroy()
+end
+
+-- Create a new fake chat GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FakeChatSpam"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+-- Create one fake chat line
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 600, 0, 50) -- Increased height to fit text
+label.Position = UDim2.new(0, 10, 0, 200)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.fromRGB(255, 70, 70)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 18 -- Slightly smaller text to fit better
+label.TextWrapped = true -- Allows text wrapping
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.TextYAlignment = Enum.TextYAlignment.Top
+label.Text = 'Thank you' .. LocalPlayer.Name .. 'for using my furry robeat autoplayer v3 :3' -- Added line break
+label.Parent = ScreenGui
+
+-- Dramatic pause, then fake ban
+task.wait(1)
+
+LocalPlayer:Kick("You are banned from the game.")
 
 -- SETTINGS
 shared.keys = shared.keys or {"A", "S", "D", "F"}
