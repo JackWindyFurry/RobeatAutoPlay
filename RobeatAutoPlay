@@ -1,5 +1,4 @@
-local keys = shared.keys or {"Z", "X", "Comma", "Period"} -- MAKE THIS YOUR ROBEATS KEYBINDS FROM LEFT TO RIGHT, OR SET IN SHARED.KEYS
- 
+
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local camera = workspace.CurrentCamera
  
