@@ -1,140 +1,266 @@
+-- RoBeat Autoplay V3 with Rounded Corners
+
+-- SETTINGS
+shared.keys = shared.keys or {"A", "S", "D", "F"}
+local keys = shared.keys
+
+-- SERVICES
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local camera = workspace.CurrentCamera
- 
+local TweenService = game:GetService("TweenService")
+
+-- CREATE ROUNDED CORNER
+local function createRounded(instance, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = instance
+end
+
+-- AUTOPLAYER ENGINE (same as before, not changed here)
 local Autoplayer = {
-    noteY = 3879,
-    sliderY = 3878,
-    laneDistanceThreshold = 25,
-    distanceLowerBound = 0.2,
-    distanceUpperBound = 0.8,
-    delayLowerBound = 0.03,
-    delayUpperBound = 0.05,
-    sliderDebounce = 0.06,
-    random = Random.new(),
-    pressedLanes = {},
-    heldLanes = {},
-    currentLanePositionsIndex = nil,
-    lanePositions = {
-        {
-            Vector3.new(-309.00, 387.70, -181.09),
-            Vector3.new(-306.87, 387.70, -178.56),
-            Vector3.new(-304.53, 387.70, -176.21),
-            Vector3.new(-301.99, 387.70, -174.08)
-        },
- 
-        {
-            Vector3.new(-301.99, 387.70, -235.64),
-            Vector3.new(-304.53, 387.70, -233.51),
-            Vector3.new(-306.87, 387.70, -231.16),
-            Vector3.new(-309.00, 387.70, -228.60)
-        },
- 
-        {
-            Vector3.new(-247.44, 387.70, -228.63),
-            Vector3.new(-249.57, 387.70, -231.16),
-            Vector3.new(-251.92, 387.70, -233.51),
-            Vector3.new(-254.46, 387.70, -235.64)
-        },
- 
-        {
-            Vector3.new(-254.46, 387.70, -174.08),
-            Vector3.new(-251.92, 387.70, -176.21),
-            Vector3.new(-249.57, 387.70, -178.56),
-            Vector3.new(-247.44, 387.70, -181.09)
-        }
-    }
+	noteY = 3879,
+	sliderY = 3878,
+	laneDistanceThreshold = 25,
+	distanceLowerBound = 0.2,
+	distanceUpperBound = 0.8,
+	delayLowerBound = 0.03,
+	delayUpperBound = 0.05,
+	sliderDebounce = 0.06,
+	random = Random.new(),
+	pressedLanes = {},
+	heldLanes = {},
+	currentLanePositionsIndex = nil,
+	lanePositions = {
+		{
+			Vector3.new(-309.00, 387.70, -181.09),
+			Vector3.new(-306.87, 387.70, -178.56),
+			Vector3.new(-304.53, 387.70, -176.21),
+			Vector3.new(-301.99, 387.70, -174.08)
+		},
+		{
+			Vector3.new(-301.99, 387.70, -235.64),
+			Vector3.new(-304.53, 387.70, -233.51),
+			Vector3.new(-306.87, 387.70, -231.16),
+			Vector3.new(-309.00, 387.70, -228.60)
+		},
+		{
+			Vector3.new(-247.44, 387.70, -228.63),
+			Vector3.new(-249.57, 387.70, -231.16),
+			Vector3.new(-251.92, 387.70, -233.51),
+			Vector3.new(-254.46, 387.70, -235.64)
+		},
+		{
+			Vector3.new(-254.46, 387.70, -174.08),
+			Vector3.new(-251.92, 387.70, -176.21),
+			Vector3.new(-249.57, 387.70, -178.56),
+			Vector3.new(-247.44, 387.70, -181.09)
+		}
+	}
 }
- 
+
 local function UpdateLanePositions()
-    local nearestDistance = Autoplayer.laneDistanceThreshold
-    local nearestGroupIndex
- 
-    for groupIndex, groupPositions in next, Autoplayer.lanePositions do
-        local distance = (groupPositions[1] - camera.CFrame.Position).Magnitude
- 
-        if distance < nearestDistance then
-            nearestDistance = distance
-            nearestGroupIndex = groupIndex
-        end
-    end
- 
-    Autoplayer.currentLanePositionsIndex = nearestGroupIndex
+	local nearestDistance = Autoplayer.laneDistanceThreshold
+	local nearestGroupIndex
+	for groupIndex, groupPositions in next, Autoplayer.lanePositions do
+		local distance = (groupPositions[1] - camera.CFrame.Position).Magnitude
+		if distance < nearestDistance then
+			nearestDistance = distance
+			nearestGroupIndex = groupIndex
+		end
+	end
+	Autoplayer.currentLanePositionsIndex = nearestGroupIndex
 end
- 
+
 local function GetNearestLane(position)
-    UpdateLanePositions()
- 
-    local nearestDistance = Autoplayer.laneDistanceThreshold
-    local nearestLane
- 
-    for laneIndex, lanePosition in next, Autoplayer.lanePositions[Autoplayer.currentLanePositionsIndex] do
-        local distance = (lanePosition - position).Magnitude
- 
-        if distance < nearestDistance then
-            nearestDistance = distance
-            nearestLane = {laneIndex, lanePosition}
-        end
-    end
- 
-    if not nearestLane then 
-        return
-    end
- 
-    return nearestLane[1], nearestLane[2]
+	UpdateLanePositions()
+	local nearestDistance = Autoplayer.laneDistanceThreshold
+	local nearestLane
+	for laneIndex, lanePosition in next, Autoplayer.lanePositions[Autoplayer.currentLanePositionsIndex] do
+		local distance = (lanePosition - position).Magnitude
+		if distance < nearestDistance then
+			nearestDistance = distance
+			nearestLane = {laneIndex, lanePosition}
+		end
+	end
+	if not nearestLane then return end
+	return nearestLane[1], nearestLane[2]
 end
- 
-for index, instance in next, workspace:GetDescendants() do
-    if instance.ClassName == "CylinderHandleAdornment" then
-        instance:GetPropertyChangedSignal("CFrame"):Connect(function()
-            if instance.Transparency == 0 and math.floor(instance.CFrame.Y * 10) == Autoplayer.noteY then
-                local noteLane, lanePosition = GetNearestLane(instance.CFrame.Position)
- 
-                if noteLane then
-                    local randomDistance = Autoplayer.random:NextNumber(Autoplayer.distanceLowerBound, Autoplayer.distanceUpperBound)
-                    local distance = instance.CFrame.Position.X - lanePosition.X
- 
-                    if Autoplayer.currentLanePositionsIndex > 2 then 
-                        distance = math.abs(distance)
-                    end
- 
-                    if not Autoplayer.pressedLanes[noteLane] and distance <= randomDistance then
-                        Autoplayer.pressedLanes[noteLane] = true
- 
-                        VirtualInputManager:SendKeyEvent(true, keys[noteLane], false, game)
-                        task.wait(Autoplayer.random:NextNumber(Autoplayer.delayLowerBound, Autoplayer.delayUpperBound))
-                        VirtualInputManager:SendKeyEvent(false, keys[noteLane], false, game)
- 
-                        Autoplayer.pressedLanes[noteLane] = false
-                    end
-                end
-            elseif instance.Transparency < 1 and instance.Height > 0.2 and math.floor(instance.CFrame.Y * 10) == Autoplayer.sliderY then
-                local noteLane, lanePosition = GetNearestLane(instance.CFrame.Position)
- 
-                if noteLane then
-                    local randomDistance = Autoplayer.random:NextNumber(Autoplayer.distanceLowerBound, Autoplayer.distanceUpperBound)
-                    local distance = (instance.CFrame - instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X
- 
-                    if Autoplayer.currentLanePositionsIndex > 2 then 
-                        distance = math.abs(distance)
-                    end
- 
-                    if not Autoplayer.heldLanes[noteLane] and distance <= randomDistance then
-                        Autoplayer.heldLanes[noteLane] = true
- 
-                        VirtualInputManager:SendKeyEvent(true, keys[noteLane], false, game)
- 
-                        repeat
-                            task.wait()
-                        until (Autoplayer.currentLanePositionsIndex > 2 and math.abs((instance.CFrame + instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X) or (instance.CFrame + instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X) <= randomDistance
- 
-                        VirtualInputManager:SendKeyEvent(false, keys[noteLane], false, game)
- 
-                        task.wait(Autoplayer.sliderDebounce)
- 
-                        Autoplayer.heldLanes[noteLane] = false
-                    end
-                end
-            end
-        end)
-    end
+
+-- GUI CREATION
+local function createGUI()
+	if game.CoreGui:FindFirstChild("RoBeatAutoplayGUI") then
+		game.CoreGui.RoBeatAutoplayGUI:Destroy()
+	end
+
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "RoBeatAutoplayGUI"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.Parent = game:GetService("CoreGui")
+
+	-- Loading
+	local Loading = Instance.new("Frame")
+	Loading.Size = UDim2.new(1, 0, 1, 0)
+	Loading.BackgroundColor3 = Color3.new(0, 0, 0)
+	Loading.BackgroundTransparency = 0.6
+	Loading.ZIndex = 10
+	Loading.Parent = ScreenGui
+	createRounded(Loading, 0)
+
+	local LoadingText = Instance.new("TextLabel")
+	LoadingText.Text = "Loading RoBeat Autoplay V3..."
+	LoadingText.Font = Enum.Font.GothamBold
+	LoadingText.TextSize = 28
+	LoadingText.TextColor3 = Color3.new(1, 1, 1)
+	LoadingText.BackgroundTransparency = 1
+	LoadingText.AnchorPoint = Vector2.new(0.5, 0.5)
+	LoadingText.Position = UDim2.new(0.5, 0, 0.5, 0)
+	LoadingText.Size = UDim2.new(0.6, 0, 0.1, 0)
+	LoadingText.Parent = Loading
+
+	task.wait(1.2)
+	TweenService:Create(Loading, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+	TweenService:Create(LoadingText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+	task.wait(0.6)
+	Loading:Destroy()
+
+	local Main = Instance.new("Frame")
+	Main.Size = UDim2.new(0, 300, 0, 180)
+	Main.Position = UDim2.new(0.5, -150, 0.5, -90)
+	Main.BackgroundTransparency = 0.6
+	Main.BackgroundColor3 = Color3.new(1, 1, 1)
+	Main.BorderSizePixel = 0
+	Main.Draggable = true
+	Main.Active = true
+	Main.Parent = ScreenGui
+	createRounded(Main, 16)
+
+	local BG = Instance.new("ImageLabel")
+	BG.Size = UDim2.new(1, 0, 1, 0)
+	BG.BackgroundTransparency = 1
+	BG.Image = "rbxassetid://117121013443157"
+	BG.Parent = Main
+	createRounded(BG, 16)
+
+	local Title = Instance.new("TextLabel")
+	Title.Text = "RoBeat Autoplay V3"
+	Title.Font = Enum.Font.GothamBold
+	Title.TextColor3 = Color3.new(0, 255, 255)
+	Title.TextSize = 20
+	Title.BackgroundTransparency = 1
+	Title.Position = UDim2.new(0.05, 0, 0.02, 0)
+	Title.Size = UDim2.new(0.9, 0, 0.2, 0)
+	Title.Parent = Main
+    
+    local Credit = Instance.new("TextLabel")
+	Credit.Text = "Made by Jack_Windy (discord:vckx92923) "
+	Credit.Font = Enum.Font.Gotham
+	Credit.TextSize = 15
+	Credit.TextColor3 = Color3.new(0, 0, 0)
+	Credit.BackgroundTransparency = 1
+	Credit.Position = UDim2.new(0.05, 0, 0.88, 0)
+	Credit.Size = UDim2.new(0.9, 0, 0.1, 0)
+	Credit.Parent = Main
+
+	local Toggle = Instance.new("TextButton")
+	Toggle.Text = "Autoplay: OFF"
+	Toggle.Font = Enum.Font.GothamBold
+	Toggle.TextSize = 16
+	Toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	Toggle.TextColor3 = Color3.new(1, 1, 1)
+	Toggle.Position = UDim2.new(0.05, 0, 0.25, 0)
+	Toggle.Size = UDim2.new(0.9, 0, 0.15, 0)
+	Toggle.BackgroundTransparency = 0.6
+	Toggle.Parent = Main
+	createRounded(Toggle, 8)
+
+	local active = false
+	Toggle.MouseButton1Click:Connect(function()
+		active = not active
+		Toggle.Text = active and "Autoplay: ON" or "Autoplay: OFF"
+	end)
+
+	for i, key in ipairs(keys) do
+		local KeyButton = Instance.new("TextButton")
+		KeyButton.Text = key
+		KeyButton.Font = Enum.Font.Gotham
+		KeyButton.TextSize = 14
+		KeyButton.Position = UDim2.new(0.1 + (i - 1) * 0.2, 0, 0.45, 0)
+		KeyButton.Size = UDim2.new(0.15, 0, 0.15, 0)
+		KeyButton.BackgroundTransparency = 0.6
+		KeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		KeyButton.TextColor3 = Color3.new(1, 1, 1)
+		KeyButton.Parent = Main
+		createRounded(KeyButton, 6)
+
+		KeyButton.MouseButton1Click:Connect(function()
+			KeyButton.Text = "..."
+			local input = game:GetService("UserInputService").InputBegan:Wait()
+			KeyButton.Text = input.KeyCode.Name
+			keys[i] = input.KeyCode.Name
+		end)
+	end
+
+	local Destroy = Instance.new("TextButton")
+	Destroy.Text = "Destroy GUI"
+	Destroy.Font = Enum.Font.GothamBlack
+	Destroy.TextSize = 18
+	Destroy.Position = UDim2.new(0.05, 0, 0.7, 0)
+	Destroy.Size = UDim2.new(0.9, 0, 0.2, 0)
+	Destroy.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+	Destroy.BackgroundTransparency = 0.6
+	Destroy.TextColor3 = Color3.new(1, 1, 1)
+	Destroy.Parent = Main
+	createRounded(Destroy, 8)
+
+	Destroy.MouseButton1Click:Connect(function()
+		ScreenGui:Destroy()
+	end)
+
+	-- AUTOPLAY SIGNALS
+	for _, instance in next, workspace:GetDescendants() do
+		if instance.ClassName == "CylinderHandleAdornment" then
+			instance:GetPropertyChangedSignal("CFrame"):Connect(function()
+				if not active then return end
+
+				if instance.Transparency == 0 and math.floor(instance.CFrame.Y * 10) == Autoplayer.noteY then
+					local noteLane, lanePosition = GetNearestLane(instance.CFrame.Position)
+					if noteLane then
+						local randomDistance = Autoplayer.random:NextNumber(Autoplayer.distanceLowerBound, Autoplayer.distanceUpperBound)
+						local distance = instance.CFrame.Position.X - lanePosition.X
+						if Autoplayer.currentLanePositionsIndex > 2 then distance = math.abs(distance) end
+						if not Autoplayer.pressedLanes[noteLane] and distance <= randomDistance then
+							Autoplayer.pressedLanes[noteLane] = true
+							VirtualInputManager:SendKeyEvent(true, keys[noteLane], false, game)
+							task.wait(Autoplayer.random:NextNumber(Autoplayer.delayLowerBound, Autoplayer.delayUpperBound))
+							VirtualInputManager:SendKeyEvent(false, keys[noteLane], false, game)
+							Autoplayer.pressedLanes[noteLane] = false
+						end
+					end
+				elseif instance.Transparency < 1 and instance.Height > 0.2 and math.floor(instance.CFrame.Y * 10) == Autoplayer.sliderY then
+					local noteLane, lanePosition = GetNearestLane(instance.CFrame.Position)
+					if noteLane then
+						local randomDistance = Autoplayer.random:NextNumber(Autoplayer.distanceLowerBound, Autoplayer.distanceUpperBound)
+						local distance = (instance.CFrame - instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X
+						if Autoplayer.currentLanePositionsIndex > 2 then distance = math.abs(distance) end
+						if not Autoplayer.heldLanes[noteLane] and distance <= randomDistance then
+							Autoplayer.heldLanes[noteLane] = true
+							VirtualInputManager:SendKeyEvent(true, keys[noteLane], false, game)
+							repeat task.wait() until (
+								Autoplayer.currentLanePositionsIndex > 2 and math.abs((instance.CFrame + instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X) or 
+								(instance.CFrame + instance.CFrame.LookVector * instance.Height / 2).X - lanePosition.X
+							) <= randomDistance
+							VirtualInputManager:SendKeyEvent(false, keys[noteLane], false, game)
+							task.wait(Autoplayer.sliderDebounce)
+							Autoplayer.heldLanes[noteLane] = false
+						end
+					end
+				end
+			end)
+		end
+	end
 end
+
+-- FIRST TIME LAUNCH
+createGUI()
