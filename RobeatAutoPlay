@@ -1,4 +1,3 @@
-
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local camera = workspace.CurrentCamera
  
